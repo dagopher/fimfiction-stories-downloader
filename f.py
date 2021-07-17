@@ -156,7 +156,7 @@ def main_program():
                     'story_id': story_id,
                     'story_download_url': f"{story_download_url_prefix}/{story_id}/{output}",
                     'story_url': f"{url_prefix}{story_link}"
-                } 
+                }
 
                 print("STORY DATA: " + pprint.pformat(story_data))
                 bookshelf_data.append(story_data)
@@ -222,12 +222,12 @@ def main_program():
     default_out_dir = 'downloaded_stories'
 
     cla_parser = argparse.ArgumentParser()
- 
+
     cla_parser.add_argument('-o', '--out', default=default_out_dir,
                             help='set the directory to which all stories will be downloaded '
                                  f"(default is {default_out_dir})")
 
-    cla_parser.add_argument('-a', '--adult', default=False, action='store_true', 
+    cla_parser.add_argument('-a', '--adult', default=False, action='store_true',
                             help='Enable downloading of mature rated stories (default is to not do this)')
 
     cla_parser.add_argument('-f', '--format', choices=sum(format_choices.values(), []),
