@@ -129,24 +129,31 @@ def main_program():
 
         bookshelf_data = []
         soup = get_the_website_data(url=bookshelf_url)
+#        print(soup.prettify().encode('ascii', 'namereplace'))
+
         current_page, end_page = range_of_pages(soup)
+        print(f"CURRENT_PAGE: {current_page}, END_PAGE: {end_page}")
 
         while True:
             beginning = 'https://www.fimfiction.net/story/download/'
 
             print("looking for storycards")
-            for storycard_container in soup.findAll(class_='story-card-storycard_container'):
+            for storycard_container in soup.findAll("div", class_='story-card-container'):
                 print("found storycard")
+#                print(storycard_container.prettify().encode('ascii', 'namereplace'))
 
-                story_link = storycard_container.find("a", class_='story_link')
-                story_id = story_link.split("/")[2]
+                story_link_container = storycard_container.find("a", class_='story_link')
+
+                story_title = story_link_container.attrs["title"],
+                story_link  = story_link_container.attrs["href"]
+                story_id    = story_link.split("/")[2]
 
                 story_data = {
                     'author_name': storycard_container.find("a", class_='story-card__author').get_text(),
-                    'link': story_link.attrs["href"],
-                    'title': story_link.attrs["title"],
+                    'link': story_link,
+                    'title': story_title,
                     'story_id': story_id,
-                    'story_url': beginning + story_id + output
+                    'story_url': f"{beginning}{story_id}{output}"
                 } 
 
                 print("STORY DATA: " + pprint.pformat(story_data))
