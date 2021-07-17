@@ -12,9 +12,9 @@ import pprint
 def main_program():
 
     format_choices = {
-        '/txt': ['1', 'txt', '1-txt'],
-        '/html': ['2', 'html', '2-html'],
-        '/epub': ['3', 'epub', '3-epub']
+        'txt':  ['1', 'txt', '1-txt'],
+        'html': ['2', 'html', '2-html'],
+        'epub': ['3', 'epub', '3-epub']
     }
 
     class FfsdError(Exception):
@@ -129,18 +129,19 @@ def main_program():
 
         bookshelf_data = []
         soup = get_the_website_data(url=bookshelf_url)
-#        print(soup.prettify().encode('ascii', 'namereplace'))
+        print(soup.prettify().encode('ascii', 'namereplace'))
 
         current_page, end_page = range_of_pages(soup)
         print(f"CURRENT_PAGE: {current_page}, END_PAGE: {end_page}")
 
         while True:
-            beginning = 'https://www.fimfiction.net/story/download/'
+            url_prefix = 'https://www.fimfiction.net'
+            story_download_url_prefix = f"{url_prefix}/story/download"
 
             print("looking for storycards")
             for storycard_container in soup.findAll("div", class_='story-card-container'):
-                print("found storycard")
-#                print(storycard_container.prettify().encode('ascii', 'namereplace'))
+                # print("found storycard")
+                # print(storycard_container.prettify().encode('ascii', 'namereplace'))
 
                 story_link_container = storycard_container.find("a", class_='story_link')
 
@@ -153,23 +154,24 @@ def main_program():
                     'link': story_link,
                     'title': story_title,
                     'story_id': story_id,
-                    'story_url': f"{beginning}{story_id}{output}"
+                    'story_download_url': f"{story_download_url_prefix}/{story_id}/{output}",
+                    'story_url': f"{url_prefix}{story_link}"
                 } 
 
                 print("STORY DATA: " + pprint.pformat(story_data))
                 bookshelf_data.append(story_data)
 
-#                print(f"{title.encode('ascii', 'namereplace')},{author_name.encode('ascii', 'namereplace')},{link}")
-
             if current_page == end_page:
                 break
+
             current_page += 1
 
             url_query['page'] = str(current_page)
             parsed_url[4] = urlparse.urlencode(url_query)
             next_page = urlparse.urlunparse(parsed_url)
-            next_source = session.get(next_page).text
-            soup = get_the_website_data(url=next_source)
+#            next_source = session.get(next_page).text
+#            soup = get_the_website_data(url=next_source)
+            soup = get_the_website_data(url=next_page)
         return bookshelf_data
 
     def get_filename_from_cd(cd):
