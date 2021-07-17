@@ -46,7 +46,9 @@ def main_program():
         parsed[4] = urlparse.urlencode(query)
         url = urlparse.urlunparse(parsed)
 
-        print(f"URL: {url}, PARSED: {parsed}, QUERY: {query}")
+        print(f"\tPARSING BOOKSHELF URL: {url}")
+        print(f"\tPARSED URL: {parsed}")
+        print(f"\tURL QUERY: {query}")
         return url, parsed, query
 
     def establish_a_session():
@@ -62,12 +64,13 @@ def main_program():
         new_session.cookies = jar
         return new_session
 
-    def get_the_website_data():
+    def get_the_website_data(url):
         """
         Get the source code of a website and check if the address is correct
         """
+        print(f"FETCHING URL: {url}")
         try:
-            source = session.get(bookshelf_url).text
+            source = session.get(url).text
         except requests.exceptions.MissingSchema:
             raise FfsdError("Incorrect address. Check it for mistakes.\n"
                             "Remember that it has to start with 'https://www'. Try again.")
@@ -119,28 +122,37 @@ def main_program():
                         print("You entered something incorrect. Try again!")
         return current_page, end_page
 
-    def stories_and_pages_loop():
+    def fetch_bookshelf_data(bookshelf_url):
         """
         Get links to stories from a page and move to the next ones
         """
-        all_links = []
-        soup = get_the_website_data()
+
+        bookshelf_data = []
+        soup = get_the_website_data(url=bookshelf_url)
         current_page, end_page = range_of_pages(soup)
 
         while True:
             beginning = 'https://www.fimfiction.net/story/download/'
 
-            for container in soup.findAll(class_='story-card-container'):
+            print("looking for storycards")
+            for storycard_container in soup.findAll(class_='story-card-storycard_container'):
+                print("found storycard")
 
-                author_name = container.find("a", class_='story-card__author').get_text()
+                story_link = storycard_container.find("a", class_='story_link')
+                story_id = story_link.split("/")[2]
 
-                story = container.find("a", class_='story_link')
-                link = story.attrs["href"]
-                title = story.attrs["title"]
-                identifier = link.split("/")[2]
-                all_links.append(beginning + identifier + output)
+                story_data = {
+                    'author_name': storycard_container.find("a", class_='story-card__author').get_text(),
+                    'link': story_link.attrs["href"],
+                    'title': story_link.attrs["title"],
+                    'story_id': story_id,
+                    'story_url': beginning + story_id + output
+                } 
 
-                print(f"{title.encode('ascii', 'namereplace')},{author_name.encode('ascii', 'namereplace')},{link}")
+                print("STORY DATA: " + pprint.pformat(story_data))
+                bookshelf_data.append(story_data)
+
+#                print(f"{title.encode('ascii', 'namereplace')},{author_name.encode('ascii', 'namereplace')},{link}")
 
             if current_page == end_page:
                 break
@@ -150,8 +162,8 @@ def main_program():
             parsed_url[4] = urlparse.urlencode(url_query)
             next_page = urlparse.urlunparse(parsed_url)
             next_source = session.get(next_page).text
-            soup = BeautifulSoup(next_source, "lxml")
-        return all_links
+            soup = get_the_website_data(url=next_source)
+        return bookshelf_data
 
     def get_filename_from_cd(cd):
         """
@@ -183,7 +195,7 @@ def main_program():
         if sys.platform in ['win32', 'cygwin']:
             translator.update({'<': '', '>': '', ':': '', '"': '', '\\': '', '|': '', '?': '', '*': ''})
 
-        for story_link in stories_and_pages_loop():
+        for story_link in fetch_bookshelf_data():
             story_id = story_link.split('/')[-2]
             fetched_file = session.get(story_link, allow_redirects=True)
             filename = get_filename_from_cd(fetched_file.headers.get('content-disposition'))
@@ -238,11 +250,14 @@ def main_program():
     session = establish_a_session()
     output = choose_file_format()
 
+    print(pprint.pformat(session))
+
     for url in urls:
         try:
             bookshelf_url, parsed_url, url_query = parse_bookshelf_url(url)
             create_download_folder()
-            stories_and_pages_loop()
+            bdata = fetch_bookshelf_data(bookshelf_url=bookshelf_url)
+            print(pprint.pformat(bdata))
         except FfsdError as err:
             print(err)
 
