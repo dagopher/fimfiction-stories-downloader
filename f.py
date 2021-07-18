@@ -12,9 +12,9 @@ import pprint
 def main_program():
 
     format_choices = {
-        'txt':  ['1', 'txt', '1-txt'],
-        'html': ['2', 'html', '2-html'],
-        'epub': ['3', 'epub', '3-epub']
+        'txt':  '1',
+        'html': '2',
+        'epub': '3',
     }
 
     class FfsdError(Exception):
@@ -230,7 +230,7 @@ def main_program():
     cla_parser.add_argument('-a', '--adult', default=False, action='store_true',
                             help='Enable downloading of mature rated stories (default is to not do this)')
 
-    cla_parser.add_argument('-f', '--format', choices=sum(format_choices.values(), []),
+    cla_parser.add_argument('-f', '--format', choices=format_choices.keys(),
                             help='set the file format for all downloaded stories')
 
     cla_parser.add_argument('-r', '--range', choices=['1', '2'],
