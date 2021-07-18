@@ -17,6 +17,8 @@ def main_program():
         'epub': '3',
     }
 
+    url_prefix = 'https://www.fimfiction.net'
+
     class FfsdError(Exception):
         pass
 
@@ -113,16 +115,15 @@ def main_program():
         Get links to stories from a page and move to the next ones
         """
 
-        bookshelf_data = []
+        stories = []
+
         soup = get_the_website_data(url=bookshelf_url, session=session)
-        # print(soup.prettify().encode('ascii', 'ignore'))
+        print(soup.prettify().encode('ascii', 'ignore'))
 
         current_page, end_page = range_of_pages(soup, url=bookshelf_url)
         print(f"CURRENT_PAGE: {current_page}, END_PAGE: {end_page}")
 
         while True:
-            url_prefix = 'https://www.fimfiction.net'
-            story_download_url_prefix = f"{url_prefix}/story/download"
 
             # print("looking for storycards")
             for storycard_container in soup.findAll("div", class_='story-card-container'):
@@ -144,12 +145,12 @@ def main_program():
                     'link': story_link,
                     'title': story_title,
                     'story_id': story_id,
-                    'download_url_prefix': f"{story_download_url_prefix}/{story_id}/",
+                    'download_url_prefix': f"{url_prefix}/story/download/{story_id}/",
                     'story_url': f"{url_prefix}{story_link}"
                 }
 
                 print("STORY DATA: " + pprint.pformat(story_data))
-                bookshelf_data.append(story_data)
+                stories.append(story_data)
 
             if current_page == end_page:
                 break
@@ -160,7 +161,7 @@ def main_program():
             parsed_url[4] = urlparse.urlencode(url_query_string)
             next_page = urlparse.urlunparse(parsed_url)
             soup = get_the_website_data(url=next_page, session=session)
-        return bookshelf_data
+        return stories
 
     def get_context_filename(file_data):
         """
@@ -217,8 +218,14 @@ def main_program():
 
         with open(download_path, 'wb') as file:
             file.write(fetched_file.content)
+            print(f"Wrote {download_path}")
 
-        print(f'Your stories have been downloaded to "{os.path.join(os.getcwd(), named_args.out)}".')
+    def sort_stories(list_of_stories):
+        return sorted(list_of_stories, key=lambda k: (k['author_name'], k['title']))
+
+    def write_bookshelf_report(list_of_stories):
+        for s in list_of_stories:
+            print(f"HERE: {s['author_name']},{s['title']},{s['story_id']},{s['story_url']}")
 
     # -----------------------------------------------------------------------
 
@@ -276,13 +283,19 @@ def main_program():
     for url in urls:
         try:
             normalized_url, parsed_url, url_query_string = parse_bookshelf_url(url)
+
             all_stories = read_bookshelf(
                     session=session,
                     bookshelf_url=normalized_url,
             )
 
-            for s in sorted(all_stories, key=lambda k: (k['author_name'], k['title'])):
-                print(f"HERE: {s['author_name']},{s['title']},{s['story_id']},{s['story_url']}")
+            all_stories = sort_stories(all_stories)
+
+            # TODO: this should be optional
+            write_bookshelf_report(all_stories)
+
+            # TODO: only write if triggered with command-line option
+            for s in (all_stories):
                 save_story(story_data=s,output_format=named_args.format,download_path=named_args.out)
 
         except FfsdError as err:
