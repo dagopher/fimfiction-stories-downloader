@@ -36,22 +36,24 @@ def main_program():
         """
         Get the url from a user and store the url for further use
         """
-        print('Downloading from:', url)
+        print("Bookshelf URL:", url)
 
         if 'fimfiction.net/story' in url:
             raise FfsdError(
-                "This program cannot download single stories. You need the website address with a list of stories.")
+                "This program cannot download single stories. You need the website address with a list of stories."
+            )
 
         parsed = list(urlparse.urlparse(url))
         query = dict(urlparse.parse_qsl(parsed[4]))  # 4 as an equivalent to parsed_url.query
         query['view_mode'] = '2'                     # sometimes the cookie doesn't work, so double tap it
         parsed[4] = urlparse.urlencode(query)
-        url = urlparse.urlunparse(parsed)
+        normalized_url = urlparse.urlunparse(parsed)
 
         print(f"\tPARSING BOOKSHELF URL: {url}")
         print(f"\tPARSED URL: {parsed}")
         print(f"\tURL QUERY: {query}")
-        return url, parsed, query
+
+        return normalized_url, parsed, query
 
     def establish_a_session():
         """
@@ -78,89 +80,97 @@ def main_program():
                             "Remember that it has to start with 'https://www'. Try again.")
         return BeautifulSoup(source, "lxml")
 
-    def range_of_pages(soup, url):
+    def get_bookshelf_name(bookshelf_url):
+        return ""
+
+
+    def parse_storycard_container(storycard_container):
+        # print("found storycard")
+        # print(storycard_container.prettify().encode('ascii', 'ignore'))
+
+        story_link_container = storycard_container.find("a", class_='story_link')
+        # print(story_link_container.prettify().encode('ascii', 'ignore'))
+
+        print(type(story_link_container.attrs["title"]))
+        story_title = story_link_container.attrs["title"].encode('ascii', 'ignore'),
+        print(f"STORY TITLE: {story_title}")
+        story_link  = story_link_container.attrs["href"]
+        story_id    = story_link.split("/")[2]
+        print(f"STORY ID: {story_id}")
+
+        story_data = {
+            'author_name': storycard_container.find("a", class_='story-card__author').get_text(),
+            'link': story_link,
+            'title': story_title,
+            'story_id': story_id,
+            'download_url_prefix': f"{url_prefix}/story/download/{story_id}/",
+            'story_url': f"{url_prefix}{story_link}"
+        }
+
+        print("STORY DATA: " + pprint.pformat(story_data))
+        return story_data
+
+
+    def range_of_pages(soup):
         """
         Get the current page and the total number of pages. If there is more than one page, you can choose the range.
         """
-        current_page = int(url_query_string.get('page', '1'))
-        if not soup.find(class_='fa fa-chevron-right'):
-            end_page = current_page  # last page or only 1 page
 
-            # it downloads the current page of stories from the 'popular stories', 'newest stories' etc.
-            # it also prevents from downloading thousands of stories at once from the search results by accident
-        elif 'fimfiction.net/stories?' in url:
+        # No "right" chevron; must be last page
+        if not soup.find(class_='fa fa-chevron-right'):
             end_page = current_page
 
+        # Grab everything
         else:
             list_of_pages = soup.find(class_='page_list')  # more than one page and not the last page
             end_page = int(list_of_pages.findAll('a', href=True)[-2].text)
 
-            if named_args.range == '1':
-                end_page = current_page
-            elif not named_args.range:
-                while end_page != current_page:
-                    users_range_of_pages = input("\nWhat do you want to download? (enter '1' or '2'):\n"
-                                                 "1-only stories from the current page\n"
-                                                 "2-stories from all pages starting from the current one\n")
-                    if users_range_of_pages == "1":
-                        end_page = current_page
-                    elif users_range_of_pages == "2":
-                        break
-                    else:
-                        print("You entered something incorrect. Try again!")
-        return current_page, end_page
+        return end_page
 
-    def read_bookshelf(bookshelf_url, session):
+
+    def read_bookshelf(bookshelf_url, session, all_pages=True):
         """
         Get links to stories from a page and move to the next ones
         """
 
-        stories = []
+        normalized_url, parsed_url, query_string = parse_bookshelf_url(bookshelf_url)
 
-        soup = get_the_website_data(url=bookshelf_url, session=session)
-        print(soup.prettify().encode('ascii', 'ignore'))
+        soup = get_the_website_data(url=normalized_url, session=session)
+        # print(soup.prettify().encode('ascii', 'ignore'))
 
-        current_page, end_page = range_of_pages(soup, url=bookshelf_url)
+        current_page = int(query_string.get('page', '1'))
+
+        # it downloads the current page of stories from the 'popular stories', 'newest stories' etc.
+        # it also prevents from downloading thousands of stories at once from the search results by accident
+        if 'fimfiction.net/stories?' in url:
+            end_page = current_page
+
+        # Only want current page
+        elif not all_pages:
+            end_page = current_page
+
+        else:
+            end_page = range_of_pages(soup)
+
         print(f"CURRENT_PAGE: {current_page}, END_PAGE: {end_page}")
 
-        while True:
+        stories = []
 
+        while True:
             # print("looking for storycards")
             for storycard_container in soup.findAll("div", class_='story-card-container'):
-                # print("found storycard")
-                # print(storycard_container.prettify().encode('ascii', 'ignore'))
-
-                story_link_container = storycard_container.find("a", class_='story_link')
-                # print(story_link_container.prettify().encode('ascii', 'ignore'))
-
-                print(type(story_link_container.attrs["title"]))
-                story_title = story_link_container.attrs["title"].encode('ascii', 'ignore'),
-                print(f"STORY TITLE: {story_title}")
-                story_link  = story_link_container.attrs["href"]
-                story_id    = story_link.split("/")[2]
-                print(f"STORY ID: {story_id}")
-
-                story_data = {
-                    'author_name': storycard_container.find("a", class_='story-card__author').get_text(),
-                    'link': story_link,
-                    'title': story_title,
-                    'story_id': story_id,
-                    'download_url_prefix': f"{url_prefix}/story/download/{story_id}/",
-                    'story_url': f"{url_prefix}{story_link}"
-                }
-
-                print("STORY DATA: " + pprint.pformat(story_data))
-                stories.append(story_data)
+                stories.append(parse_storycard_container(storycard_container))
 
             if current_page == end_page:
                 break
+            else:
+                current_page += 1
 
-            current_page += 1
+                query_string['page'] = str(current_page)
+                parsed_url[4] = urlparse.urlencode(query_string)
+                next_page = urlparse.urlunparse(parsed_url)
+                soup = get_the_website_data(url=next_page, session=session)
 
-            url_query_string['page'] = str(current_page)
-            parsed_url[4] = urlparse.urlencode(url_query_string)
-            next_page = urlparse.urlunparse(parsed_url)
-            soup = get_the_website_data(url=next_page, session=session)
         return stories
 
     def get_context_filename(file_data):
@@ -211,14 +221,14 @@ def main_program():
 
         # TODO: Sanitize author_name to avoid nasty surprises in pathing
         download_directory = f"{download_path}/{story_data['author_name']}"
-        create_download_folder(download_directory)
+#        create_download_folder(download_directory)
 
         stripped_filename = filename.translate(str.maketrans(translator))
         download_path = check_filepath(os.path.join(download_directory, stripped_filename), story_data['story_id'])
 
-        with open(download_path, 'wb') as file:
-            file.write(fetched_file.content)
-            print(f"Wrote {download_path}")
+#        with open(download_path, 'wb') as file:
+#            file.write(fetched_file.content)
+#            print(f"Wrote {download_path}")
 
     def sort_stories(list_of_stories):
         return sorted(list_of_stories, key=lambda k: (k['author_name'], k['title']))
@@ -273,6 +283,11 @@ def main_program():
         cla_parser.print_help()
         sys.exit(2)
 
+    if not named_args.range:
+        sys.stderr.write("Page range target not defined")
+        cla_parser.print_help()
+        sys.exit(2)
+
     # -----------------------------------------------------------------------
 
     # TODO: should only create directory if user actually wants to download stuff
@@ -282,11 +297,11 @@ def main_program():
 
     for url in urls:
         try:
-            normalized_url, parsed_url, url_query_string = parse_bookshelf_url(url)
+            get_bookshelf_name(bookshelf_url=url)
 
             all_stories = read_bookshelf(
-                    session=session,
-                    bookshelf_url=normalized_url,
+                session=session,
+                bookshelf_url=url,
             )
 
             all_stories = sort_stories(all_stories)
@@ -295,8 +310,8 @@ def main_program():
             write_bookshelf_report(all_stories)
 
             # TODO: only write if triggered with command-line option
-            for s in (all_stories):
-                save_story(story_data=s,output_format=named_args.format,download_path=named_args.out)
+#            for s in (all_stories):
+#                save_story(story_data=s,output_format=named_args.format,download_path=named_args.out)
 
         except FfsdError as err:
             print(err)
