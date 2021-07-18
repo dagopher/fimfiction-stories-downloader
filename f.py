@@ -21,12 +21,12 @@ def main_program():
         pass
 
 
-    def create_download_folder():
+    def create_download_folder(download_path):
         """
         Create a download folder if it does not exist
         """
         try:
-            os.mkdir(named_args.out)
+            os.mkdir(download_path)
         except FileExistsError:
             pass
 
@@ -64,7 +64,7 @@ def main_program():
         new_session.cookies = jar
         return new_session
 
-    def get_the_website_data(url):
+    def get_the_website_data(url,session):
         """
         Get the source code of a website and check if the address is correct
         """
@@ -76,17 +76,17 @@ def main_program():
                             "Remember that it has to start with 'https://www'. Try again.")
         return BeautifulSoup(source, "lxml")
 
-    def range_of_pages(soup):
+    def range_of_pages(soup, url):
         """
         Get the current page and the total number of pages. If there is more than one page, you can choose the range.
         """
-        current_page = int(url_query.get('page', '1'))
+        current_page = int(url_query_string.get('page', '1'))
         if not soup.find(class_='fa fa-chevron-right'):
             end_page = current_page  # last page or only 1 page
 
             # it downloads the current page of stories from the 'popular stories', 'newest stories' etc.
             # it also prevents from downloading thousands of stories at once from the search results by accident
-        elif 'fimfiction.net/stories?' in bookshelf_url:
+        elif 'fimfiction.net/stories?' in url:
             end_page = current_page
 
         else:
@@ -108,16 +108,16 @@ def main_program():
                         print("You entered something incorrect. Try again!")
         return current_page, end_page
 
-    def fetch_bookshelf_data(bookshelf_url,output_format):
+    def read_bookshelf(bookshelf_url, session):
         """
         Get links to stories from a page and move to the next ones
         """
 
         bookshelf_data = []
-        soup = get_the_website_data(url=bookshelf_url)
-        print(soup.prettify().encode('ascii', 'namereplace'))
+        soup = get_the_website_data(url=bookshelf_url, session=session)
+        # print(soup.prettify().encode('ascii', 'ignore'))
 
-        current_page, end_page = range_of_pages(soup)
+        current_page, end_page = range_of_pages(soup, url=bookshelf_url)
         print(f"CURRENT_PAGE: {current_page}, END_PAGE: {end_page}")
 
         while True:
@@ -127,20 +127,24 @@ def main_program():
             # print("looking for storycards")
             for storycard_container in soup.findAll("div", class_='story-card-container'):
                 # print("found storycard")
-                # print(storycard_container.prettify().encode('ascii', 'namereplace'))
+                # print(storycard_container.prettify().encode('ascii', 'ignore'))
 
                 story_link_container = storycard_container.find("a", class_='story_link')
+                # print(story_link_container.prettify().encode('ascii', 'ignore'))
 
-                story_title = story_link_container.attrs["title"],
+                print(type(story_link_container.attrs["title"]))
+                story_title = story_link_container.attrs["title"].encode('ascii', 'ignore'),
+                print(f"STORY TITLE: {story_title}")
                 story_link  = story_link_container.attrs["href"]
                 story_id    = story_link.split("/")[2]
+                print(f"STORY ID: {story_id}")
 
                 story_data = {
                     'author_name': storycard_container.find("a", class_='story-card__author').get_text(),
                     'link': story_link,
                     'title': story_title,
                     'story_id': story_id,
-                    'story_download_url': f"{story_download_url_prefix}/{story_id}/{output_format}",
+                    'download_url_prefix': f"{story_download_url_prefix}/{story_id}/",
                     'story_url': f"{url_prefix}{story_link}"
                 }
 
@@ -152,25 +156,28 @@ def main_program():
 
             current_page += 1
 
-            url_query['page'] = str(current_page)
-            parsed_url[4] = urlparse.urlencode(url_query)
+            url_query_string['page'] = str(current_page)
+            parsed_url[4] = urlparse.urlencode(url_query_string)
             next_page = urlparse.urlunparse(parsed_url)
-#            next_source = session.get(next_page).text
-#            soup = get_the_website_data(url=next_source)
-            soup = get_the_website_data(url=next_page)
+            soup = get_the_website_data(url=next_page, session=session)
         return bookshelf_data
 
-    def get_filename_from_cd(cd):
+    def get_context_filename(file_data):
         """
         Get filename from content-disposition
         """
+        cd = file_data.headers.get('content-disposition')
+
         if not cd:
             return None
+
         fetched_name = re.findall('filename=(.+)', cd)
+
         if len(fetched_name) == 0:
             return None
 
         filename = fetched_name[0].encode('latin-1').decode('utf-8')
+
         try:
             return eval(filename.rstrip(';'))
         except SyntaxError:
@@ -182,25 +189,35 @@ def main_program():
             return path[:in_id] + '_' + story_id + path[in_id:] if in_id != -1 else path + '_' + story_id
         return path
 
-    def save_files():
+    def get_story_download_url(story_data,output_format):
+        url = f"{story_data['download_url_prefix']}{output_format}"
+        print(f"DOWNLOAD URL: {url}")
+        return url
+
+    def save_story(story_data,output_format,download_path):
         """
         Save the stories
         """
         translator = {'/': ''}
-        if sys.platform in ['win32', 'cygwin']:
-            translator.update({'<': '', '>': '', ':': '', '"': '', '\\': '', '|': '', '?': '', '*': ''})
 
-        for story_link in fetch_bookshelf_data():
-            story_id = story_link.split('/')[-2]
-            fetched_file = session.get(story_link, allow_redirects=True)
-            filename = get_filename_from_cd(fetched_file.headers.get('content-disposition'))
-            if not filename:
-                filename = story_id + '.' + story_link.split('/')[-1]  # fallback to 'id.ext'
+        download_url = get_story_download_url(story_data, output_format)
+        fetched_file = session.get(download_url, allow_redirects=True)
 
-            stripped_filename = filename.translate(str.maketrans(translator))
-            download_path = check_filepath(os.path.join(named_args.out, stripped_filename), story_id)
-            with open(download_path, 'wb') as file:
-                file.write(fetched_file.content)
+        filename = get_context_filename(fetched_file)
+
+        if not filename:
+            filename = f"{story_data['story_id']}.{output_format}"  # fallback to 'id.ext'
+
+        # TODO: Sanitize author_name to avoid nasty surprises in pathing
+        download_directory = f"{download_path}/{story_data['author_name']}"
+        create_download_folder(download_directory)
+
+        stripped_filename = filename.translate(str.maketrans(translator))
+        download_path = check_filepath(os.path.join(download_directory, stripped_filename), story_data['story_id'])
+
+        with open(download_path, 'wb') as file:
+            file.write(fetched_file.content)
+
         print(f'Your stories have been downloaded to "{os.path.join(os.getcwd(), named_args.out)}".')
 
     # -----------------------------------------------------------------------
@@ -236,6 +253,8 @@ def main_program():
     print("URLS: " + pprint.pformat(urls))
 
     # -----------------------------------------------------------------------
+    # Parameter validation
+    # -----------------------------------------------------------------------
 
     if not urls:
         sys.stderr.write('No URLs defined')
@@ -247,14 +266,25 @@ def main_program():
         cla_parser.print_help()
         sys.exit(2)
 
-    print(pprint.pformat(session))
+    # -----------------------------------------------------------------------
+
+    # TODO: should only create directory if user actually wants to download stuff
+    create_download_folder(named_args.out)
+
+    session = establish_a_session()
 
     for url in urls:
         try:
-            bookshelf_url, parsed_url, url_query = parse_bookshelf_url(url)
-            create_download_folder()
-            bdata = fetch_bookshelf_data(bookshelf_url=bookshelf_url, output_format=named_args.format)
-            # print(pprint.pformat(bdata))
+            normalized_url, parsed_url, url_query_string = parse_bookshelf_url(url)
+            all_stories = read_bookshelf(
+                    session=session,
+                    bookshelf_url=normalized_url,
+            )
+
+            for s in sorted(all_stories, key=lambda k: (k['author_name'], k['title'])):
+                print(f"HERE: {s['author_name']},{s['title']},{s['story_id']},{s['story_url']}")
+                save_story(story_data=s,output_format=named_args.format,download_path=named_args.out)
+
         except FfsdError as err:
             print(err)
 
