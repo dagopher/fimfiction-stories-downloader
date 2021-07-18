@@ -76,20 +76,6 @@ def main_program():
                             "Remember that it has to start with 'https://www'. Try again.")
         return BeautifulSoup(source, "lxml")
 
-    def choose_file_format():
-        """
-        Choose the format of story
-        """
-        if named_args.format:
-            return next(key for key, values in format_choices.items() if named_args.format in values)
-
-        while True:
-            try:
-                chosen_file_format = input('\nChoose the file format (enter a number): 1-txt, 2-html, 3-epub: ').lower()
-                return next(key for key, values in format_choices.items() if chosen_file_format in values)
-            except StopIteration:
-                print("You entered something incorrect. Try again.")
-
     def range_of_pages(soup):
         """
         Get the current page and the total number of pages. If there is more than one page, you can choose the range.
@@ -122,7 +108,7 @@ def main_program():
                         print("You entered something incorrect. Try again!")
         return current_page, end_page
 
-    def fetch_bookshelf_data(bookshelf_url):
+    def fetch_bookshelf_data(bookshelf_url,output_format):
         """
         Get links to stories from a page and move to the next ones
         """
@@ -138,7 +124,7 @@ def main_program():
             url_prefix = 'https://www.fimfiction.net'
             story_download_url_prefix = f"{url_prefix}/story/download"
 
-            print("looking for storycards")
+            # print("looking for storycards")
             for storycard_container in soup.findAll("div", class_='story-card-container'):
                 # print("found storycard")
                 # print(storycard_container.prettify().encode('ascii', 'namereplace'))
@@ -154,7 +140,7 @@ def main_program():
                     'link': story_link,
                     'title': story_title,
                     'story_id': story_id,
-                    'story_download_url': f"{story_download_url_prefix}/{story_id}/{output}",
+                    'story_download_url': f"{story_download_url_prefix}/{story_id}/{output_format}",
                     'story_url': f"{url_prefix}{story_link}"
                 }
 
@@ -256,8 +242,10 @@ def main_program():
         cla_parser.print_help()
         sys.exit(2)
 
-    session = establish_a_session()
-    output = choose_file_format()
+    if named_args.format not in format_choices.keys():
+        sys.stderr.write('Output format not defined')
+        cla_parser.print_help()
+        sys.exit(2)
 
     print(pprint.pformat(session))
 
@@ -265,8 +253,8 @@ def main_program():
         try:
             bookshelf_url, parsed_url, url_query = parse_bookshelf_url(url)
             create_download_folder()
-            bdata = fetch_bookshelf_data(bookshelf_url=bookshelf_url)
-            print(pprint.pformat(bdata))
+            bdata = fetch_bookshelf_data(bookshelf_url=bookshelf_url, output_format=named_args.format)
+            # print(pprint.pformat(bdata))
         except FfsdError as err:
             print(err)
 
