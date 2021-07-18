@@ -80,8 +80,11 @@ def main_program():
                             "Remember that it has to start with 'https://www'. Try again.")
         return BeautifulSoup(source, "lxml")
 
+
     def get_bookshelf_name(bookshelf_url):
-        return ""
+        parsed = urlparse.urlparse(bookshelf_url)
+        name = parsed.path.split("/")[-1]
+        return name
 
 
     def parse_storycard_container(storycard_container):
@@ -230,7 +233,7 @@ def main_program():
 #            file.write(fetched_file.content)
 #            print(f"Wrote {download_path}")
 
-    def sort_stories(list_of_stories):
+    def sort_stories_by_author_title(list_of_stories):
         return sorted(list_of_stories, key=lambda k: (k['author_name'], k['title']))
 
     def write_bookshelf_report(list_of_stories):
@@ -297,14 +300,14 @@ def main_program():
 
     for url in urls:
         try:
-            get_bookshelf_name(bookshelf_url=url)
+            print("BOOKSHELF NAME: " + get_bookshelf_name(bookshelf_url=url))
 
             all_stories = read_bookshelf(
                 session=session,
                 bookshelf_url=url,
             )
 
-            all_stories = sort_stories(all_stories)
+            all_stories = sort_stories_by_author_title(all_stories)
 
             # TODO: this should be optional
             write_bookshelf_report(all_stories)
