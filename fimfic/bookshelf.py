@@ -33,11 +33,13 @@ class Bookshelf(FimFicObj):
     def get_stories(self):
         return self.stories
 
+
     def load_stories(self, single_page=False):
         self.infodump()
         soup = Soup(session=self.session, url=self.modified_url)
 
         while True:
+            # print(f"CURRENT URL: {soup.url}")
             self.stories.extend( soup.get_stories() )
 
             next_page_number = soup.next_page_number()

@@ -1,3 +1,4 @@
+import urllib.parse as urlparse
 import requests
 
 from bs4 import BeautifulSoup
@@ -43,8 +44,11 @@ class Soup(FimFicObj):
 
         # If there is a right chevron to "click for next page" then we know there is a next page
         if self.soup.find(class_='fa fa-chevron-right'):
-            list_of_pages = self.soup.find('div', class_='page_list')
-            return int(list_of_pages.findAll('a', href=True)[-2].text)
+            page_list = self.soup.find('div', class_='page_list')
+            chevron_href = page_list.findAll('a', href=True)[-1].attrs["href"]
+            parsed = urlparse.urlparse(chevron_href)
+            query = dict(urlparse.parse_qsl(parsed.query))
+            return str(query['page'])
         else:
             return None
 
