@@ -8,5 +8,8 @@ class Story(FimFicObj):
         self.id = id
         self.author_name = author_name
 
+#        'download_url_prefix': f"{url_prefix}/story/download/{story_id}/",
+#        'story_url': f"{url_prefix}{story_link}"
+
     def download(self):
         pass

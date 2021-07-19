@@ -1,19 +1,14 @@
 from .bookshelf import Bookshelf
 from .ffobj import FimFicObj
 from .session import Session
+from .soup import Soup
 from .story import Story
 
 __all__ = [
     "Bookshelf",
     "Session",
+    "Soup",
     "Story",
 ]
-
-class FimficObj:
-    def __init__(self, *kwargs):
-        pass
-
-    def infodump(self):
-        print(pprint.pformat(self.__dict__))
 
 # vim: ts=4 sw=4 et tw=100 : 
