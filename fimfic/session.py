@@ -14,11 +14,11 @@ class Session(FimFicObj):
 
 
     def enable_mature(self):
-        self.cookies.set('view_mature', 'true')
+        self.session.cookies.set('view_mature', 'true')
         
 
     def disable_mature(self):
-        self.cookies.set('view_mature', 'false')
+        self.session.cookies.set('view_mature', 'false')
 
 
     def set_cookie(self, key, value, *kwargs):

@@ -2,6 +2,7 @@ import urllib.parse as urlparse
 import pprint
 
 from fimfic.ffobj import FimFicObj
+from fimfic.soup import Soup
 
 class Bookshelf(FimFicObj):
 
@@ -29,12 +30,13 @@ class Bookshelf(FimFicObj):
 
 
     def get_stories(self, single_page=False):
-        soup = Soup(session=self.session, url=modified_url)
+        self.infodump()
+        soup = Soup(session=self.session, url=self.modified_url)
 
         while True:
-            self.stories.append( soup.get_stories() )
+            self.stories.extend( soup.get_stories() )
 
-            next_page_number = next_page_number(soup)
+            next_page_number = soup.next_page_number()
 
             if next_page_number:
                 query_string['page'] = str(next_page_number)

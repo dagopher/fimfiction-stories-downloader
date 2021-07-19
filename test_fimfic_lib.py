@@ -2,6 +2,7 @@ import fimfic
 import pprint
 
 session = fimfic.Session()
+session.enable_mature()
 session.infodump()
 
 URLs = [

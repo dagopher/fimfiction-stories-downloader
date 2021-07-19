@@ -1,5 +1,8 @@
-from fimfic.ffobj import FimFicObj
+import requests
+
 from bs4 import BeautifulSoup
+from fimfic.ffobj import FimFicObj
+from fimfic.story import Story
 
 def parse_storycard_container(storycard_container):
     story_link_container = storycard_container.find("a", class_='story_link')
@@ -19,24 +22,28 @@ def parse_storycard_container(storycard_container):
 
 class Soup(FimFicObj):
 
-    def __init__(self, session, *kwargs):
+    def __init__(self, session, url, *kwargs):
         self.session = session
+        self.url = url
+        self.fetch_data()
+        
 
+    def fetch_data(self):
         try:
-            self.soup = BeautifulSoup( session.get(url).text , "lxml")
+            self.soup = BeautifulSoup( self.session.session.get(self.url).text , "lxml")
         except requests.exceptions.MissingSchema:
             raise FfsdError("Incorrect address. Check it for mistakes.\n"
                             "Remember that it has to start with 'https://www'. Try again.")
 
 
-    def next_page_number(soup):
+    def next_page_number(self):
         """
         Return the page number of the next page in sequence.
         """
     
         # If there is a right chevron to "click for next page" then we know there is a next page
-        if soup.find(class_='fa fa-chevron-right'):
-            list_of_pages = soup.find(class_='page_list')  
+        if self.soup.find(class_='fa fa-chevron-right'):
+            list_of_pages = self.soup.find(class_='page_list')  
             return int(list_of_pages.findAll('a', href=True)[-1].text)
         else:
             return None
