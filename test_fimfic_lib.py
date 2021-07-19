@@ -2,12 +2,15 @@ import fimfic
 import pprint
 
 session = fimfic.Session()
-print(pprint.pformat(session))
+session.infodump()
 
-b = fimfic.Bookshelf(
-        url="http://www.fimfiction.net/bookshelf/1364962/xeno"
-    )
+URLs = [
+    "http://www.fimfiction.net/bookshelf/1364962/xeno",
+    "https://www.fimfiction.net/bookshelf/683004/favourites?page=7&&view_mode=1",
+    ]
 
-print(b.name)
+for url in URLs:
+    b = fimfic.Bookshelf(url=url)
+    b.infodump()
 
 # vim: ts=4 sw=4 et tw=100 : 

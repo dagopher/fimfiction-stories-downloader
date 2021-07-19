@@ -6,6 +6,7 @@ import os
 import os.path
 import sys
 import urllib.parse as urlparse
+import pprint
 
 
 def main_program():
@@ -151,15 +152,27 @@ def main_program():
         """
         all_links = []
         soup = get_the_website_data()
+        print(soup.prettify().encode('ascii', 'namereplace'))
+
         current_page, end_page = range_of_pages(soup)
+        print(f"CURRENT_PAGE: {current_page}, END_PAGE: {end_page}")
 
         while True:
             beginning = 'https://www.fimfiction.net/story/download/'
 
-            for story in soup.findAll(class_=['story_link', 'story_name']):
+            print("looking for storycards")
+            for container in soup.findAll(class_='story-card-container'):
+                print("found storycard")
+
+                author_name = container.find("a", class_='story-card__author').get_text()
+
+                story = container.find("a", class_='story_link')
                 link = story.attrs["href"]
+                title = story.attrs["title"]
                 identifier = link.split("/")[2]
                 all_links.append(beginning + identifier + output)
+
+                print(f"{title.encode('ascii', 'namereplace')},{author_name.encode('ascii', 'namereplace')},{link}")
 
             if current_page == end_page:
                 break
@@ -223,7 +236,7 @@ def main_program():
             session = establish_a_session()
             output = choose_file_format()
             create_download_folder()
-            save_files()
+            stories_and_pages_loop()
         except FfsdError as err:
             print(err)
         list_link_id += 1 if list_link_id != -1 else 0

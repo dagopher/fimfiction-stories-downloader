@@ -246,6 +246,9 @@ def main_program():
 
     cla_parser = argparse.ArgumentParser()
 
+    cla_parser.add_argument('-c', '--cache', default=False, action='store_true',
+                            help="write out cache of data retrieved about bookshelf in json format.")
+
     cla_parser.add_argument('-o', '--out', default=default_out_dir,
                             help='set the directory to which all stories will be downloaded '
                                  f"(default is {default_out_dir})")
@@ -311,6 +314,8 @@ def main_program():
 
             # TODO: this should be optional
             write_bookshelf_report(all_stories)
+
+            write_story_cache
 
             # TODO: only write if triggered with command-line option
 #            for s in (all_stories):
