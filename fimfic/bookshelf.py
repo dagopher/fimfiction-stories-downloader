@@ -26,10 +26,14 @@ class Bookshelf(FimFicObj):
 
         url_parts = list(self.parsed)
         url_parts[4] = urlparse.urlencode(query)
+
         self.modified_url = urlparse.urlunparse(url_parts)
 
 
-    def get_stories(self, single_page=False):
+    def get_stories(self):
+        return self.stories
+
+    def load_stories(self, single_page=False):
         self.infodump()
         soup = Soup(session=self.session, url=self.modified_url)
 
@@ -38,12 +42,20 @@ class Bookshelf(FimFicObj):
 
             next_page_number = soup.next_page_number()
 
-            if next_page_number:
-                query_string['page'] = str(next_page_number)
-                parsed_url[4] = urlparse.urlencode(query_string)
-                next_url = urlparse.urlunparse(parsed_url)
+            if single_page:
+                break
+            elif next_page_number:
+                query = dict(urlparse.parse_qsl(self.parsed.query))
+                query.update({'page': str(next_page_number) })
+
+                url_parts = list(self.parsed)
+                url_parts[4] = urlparse.urlencode(query)
+
+                next_url = urlparse.urlunparse(url_parts)
                 soup = Soup(session=self.session, url=next_url)
             else:
                 break
+
+        return self.get_stories()
 
 # vim: ts=4 sw=4 et tw=100 :

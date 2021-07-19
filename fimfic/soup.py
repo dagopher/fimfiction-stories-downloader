@@ -26,7 +26,7 @@ class Soup(FimFicObj):
         self.session = session
         self.url = url
         self.fetch_data()
-        
+
 
     def fetch_data(self):
         try:
@@ -40,11 +40,11 @@ class Soup(FimFicObj):
         """
         Return the page number of the next page in sequence.
         """
-    
+
         # If there is a right chevron to "click for next page" then we know there is a next page
         if self.soup.find(class_='fa fa-chevron-right'):
-            list_of_pages = self.soup.find(class_='page_list')  
-            return int(list_of_pages.findAll('a', href=True)[-1].text)
+            list_of_pages = self.soup.find('div', class_='page_list')
+            return int(list_of_pages.findAll('a', href=True)[-2].text)
         else:
             return None
 
@@ -60,4 +60,4 @@ class Soup(FimFicObj):
 
         return stories
 
-# vim: ts=4 sw=4 et tw=100 : 
+# vim: ts=4 sw=4 et tw=100 :
