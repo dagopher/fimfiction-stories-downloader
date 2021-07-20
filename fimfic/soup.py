@@ -1,35 +1,38 @@
-import urllib.parse as urlparse
 import requests
-
+import urllib.parse as urlparse
 from bs4 import BeautifulSoup
+
+from fimfic.const import *
 from fimfic.ffobj import FimFicObj
 from fimfic.story import Story
+
+def text_sanitize(txt):
+    return txt.encode("latin-1").decode("utf-8")
+
 
 def parse_storycard_container(storycard_container):
     story_link_container = storycard_container.find("a", class_='story_link')
 
-    story_title = story_link_container.attrs["title"].encode('ascii', 'ignore'),
-    story_link  = story_link_container.attrs["href"]
-    story_id    = story_link.split("/")[2]
+    link = story_link_container.attrs["href"]
 
     story_data = {
-        'author_name': storycard_container.find("a", class_='story-card__author').get_text(),
-        'link': story_link,
-        'title': story_title,
-        'story_id': story_id,
+        'author_name': text_sanitize(storycard_container.find("a", class_='story-card__author').get_text()),
+        'url': URL_PREFIX + link,
+        'title': text_sanitize(story_link_container.attrs["title"]),
+        'id': link.split("/")[2]
     }
 
     return story_data
 
 class Soup(FimFicObj):
 
-    def __init__(self, session, url, *kwargs):
+    def __init__(self, session, url, **kwargs):
         self.session = session
         self.url = url
         self.fetch_data()
 
 
-    def fetch_data(self):
+    def fetch_data(self, **kwargs):
         try:
             self.soup = BeautifulSoup( self.session.session.get(self.url).text , "lxml")
         except requests.exceptions.MissingSchema:
@@ -37,7 +40,7 @@ class Soup(FimFicObj):
                             "Remember that it has to start with 'https://www'. Try again.")
 
 
-    def next_page_number(self):
+    def next_page_number(self, **kwargs):
         """
         Return the page number of the next page in sequence.
         """
@@ -53,15 +56,20 @@ class Soup(FimFicObj):
             return None
 
 
-    def get_storycards(self):
-        return self.soup.findAll("div", class_='story-card-container')
+#    def get_storycards(self, **kwargs):
+#        return self.soup.findAll("div", class_='story-card-container')
 
 
-    def get_stories(self):
+    def get_stories(self, **kwargs):
         stories = []
         for sc in self.soup.findAll("div", class_='story-card-container'):
-            stories.append( Story(parse_storycard_container(sc)) )
+            # Reminder to self, '**blah' expands dict into key/val arguments
+            stories.append(Story( **parse_storycard_container(sc) ))
 
+        import pprint
+        print("STORY DATA: " + pprint.pformat(stories))
+        for s in stories:
+            s.infodump()
         return stories
 
 # vim: ts=4 sw=4 et tw=100 :

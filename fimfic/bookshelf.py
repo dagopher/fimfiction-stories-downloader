@@ -6,7 +6,7 @@ from fimfic.soup import Soup
 
 class Bookshelf(FimFicObj):
 
-    def __init__(self, session, url):
+    def __init__(self, session, url, **kwargs):
 
         if 'fimfiction.net/story' in url:
             raise FfsdError(
@@ -34,7 +34,7 @@ class Bookshelf(FimFicObj):
         return self.stories
 
 
-    def load_stories(self, single_page=False):
+    def load_stories(self, single_page=False, **kwargs):
         self.infodump()
         soup = Soup(session=self.session, url=self.modified_url)
 
@@ -60,4 +60,16 @@ class Bookshelf(FimFicObj):
 
         return self.get_stories()
 
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "url": self.url,
+            "stories": [ s.to_dict() for s in self.stories ],
+        }
+
+
+    def to_json(self):
+        return FimFicObj.to_json(self, self.to_dict())
+        
 # vim: ts=4 sw=4 et tw=100 :
