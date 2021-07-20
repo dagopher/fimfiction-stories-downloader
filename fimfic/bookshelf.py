@@ -8,6 +8,12 @@ class Bookshelf(FimFicObj):
 
     def __init__(self, session, url, **kwargs):
 
+        if not url:
+            raise("NO URL DEFINED")
+
+        if not session:
+            raise("NO SESSION DEFINED")
+
         if 'fimfiction.net/story' in url:
             raise FfsdError(
                 "This program cannot download single stories. You need the website address with a list of stories."
