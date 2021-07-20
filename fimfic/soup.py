@@ -64,7 +64,7 @@ class Soup(FimFicObj):
         stories = []
         for sc in self.soup.findAll("div", class_='story-card-container'):
             # Reminder to self, '**blah' expands dict into key/val arguments
-            stories.append(Story( **parse_storycard_container(sc) ))
+            stories.append(Story( self.session, **parse_storycard_container(sc) ))
 
         import pprint
         print("STORY DATA: " + pprint.pformat(stories))

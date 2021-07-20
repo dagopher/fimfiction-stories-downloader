@@ -2,7 +2,7 @@ import json
 import pprint
 
 class FimFicObj:
-    def __init__(self, *kwargs):
+    def __init__(self, **kwargs):
         pass
 
 
