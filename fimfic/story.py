@@ -1,7 +1,7 @@
-import json
-
 from fimfic.const import *
 from fimfic.ffobj import FimFicObj
+
+import json
 
 class Story(FimFicObj):
 

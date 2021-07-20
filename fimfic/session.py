@@ -1,6 +1,6 @@
-import requests
-
 from fimfic.ffobj import FimFicObj
+
+import requests
 
 class Session(FimFicObj):
 

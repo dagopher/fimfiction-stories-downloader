@@ -1,8 +1,8 @@
-import urllib.parse as urlparse
-import pprint
-
 from fimfic.ffobj import FimFicObj
 from fimfic.soup import Soup
+
+import urllib.parse as urlparse
+import pprint
 
 class Bookshelf(FimFicObj):
 
